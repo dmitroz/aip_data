@@ -53,29 +53,17 @@ def view_all_ids():
     data = cx.fetchall()
     return data
 
-
-<<<<<<< Updated upstream
 def get_record(key):
     cx.execute('SELECT KEY, FUNDINGLINEID, FISCALYEAR, STEP, AMOUNT, NOTES2 FROM FUNDINGAMOUNTS WHERE KEY ={}'.format(key))
     #FUNDINGLINEID ="{}" AND STEP ="{}" AND FISCALYEAR ="{}"'.format(funding_line_id, step, fiscal_year))
-=======
-def get_record(key): #funding_line_id, step='', fiscal_year=''):
-    cx.execute("SELECT * FROM FUNDINGAMOUNTS WHERE KEY ={}".format(key))
-        #funding_line_id))
->>>>>>> Stashed changes
+
     data = cx.fetchall()
     return data
 
 
-<<<<<<< Updated upstream
 def update_record(new_amount, new_notes, funding_line_id, step, fiscal_year):
     cx.execute("UPDATE FUNDINGAMOUNTS SET AMOUNT ={}, NOTES='{}' WHERE FUNDINGLINEID='{}' and STEP='{}' and FISCALYEAR='{}'",
                (new_amount, new_notes, funding_line_id, step, fiscal_year))
-=======
-def update_record(new_amount, new_notes, key): #funding_line_id, step, fiscal_year):
-    cx.execute("UPDATE FUNDINGAMOUNTS SET AMOUNT ={}, NOTES2='{}' WHERE KEY = {}".format(new_amount, new_notes, key)) #FUNDINGLINEID='{}' and STEP='{}' and FISCALYEAR='{}' ".format(
-        #new_amount, new_notes, funding_line_id, step, fiscal_year))
->>>>>>> Stashed changes
     connect.commit()
     data = cx.fetchall()
     return data

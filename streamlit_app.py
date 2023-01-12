@@ -35,7 +35,7 @@ def main():
 
         if uploaded_file:
             columns = ['ID', 'FUNDINGLINEID', 'FISCALYEAR', 'STEP', 'AMOUNT', 'NOTES']
-            df = pd.read_csv(uploaded_file, delimiter=';', header=None, names=columns, skiprows=1)  # , dtype={'AMOUNT': 'Number'})
+            df = pd.read_csv(uploaded_file, delimiter=',', header=None, names=columns, skiprows=1)  # , dtype={'AMOUNT': 'Number'})
 
             st.markdown('### File data preview')
             st.dataframe(df.head())
@@ -51,8 +51,14 @@ def main():
             st.write('')
 
             if st.button('Submit'):
-                for row in df.iterrows():
-                    st.write(row)#df['ID'].unique()[row])
+                for row in df.itertuples():
+                    key = row.ID
+                    funding_line_id = row.FUNDINGLINEID
+                    fiscal_year = row.FISCALYEAR
+                    step = row.STEP
+                    amount = row.AMOUNT
+                    notes = row.NOTES
+                    insert_record(key, funding_line_id, fiscal_year, step, amount, notes)
 
                 # insert_record(key, funding_line_id, fiscal_year, step, amount, notes)
                 # st.success('Added: {}, {}, {}, {}, {}, {} to FUNDINGAMOUNTS table'.format(
@@ -87,12 +93,7 @@ def main():
         with st.expander('View all records'):
             result = view_data()
             # st.write(result)
-<<<<<<< Updated upstream
             clean_df = pd.DataFrame(result, columns=['ID', 'FUNDINGLINEID', 'FISCALYEAR', 'STEP', 'AMOUNT', 'UNDEFINED'])
-=======
-            clean_df = pd.DataFrame(result,
-                                    columns=['ID', 'FUNDINGLINEID', 'FISCALYEAR', 'STEP', 'AMOUNT', 'UNDEFINED'])
->>>>>>> Stashed changes
             st.dataframe(clean_df)
 
         # with st.expander("STEP"):
@@ -139,13 +140,8 @@ def main():
                 new_amount = st.number_input(amount)
 
             if st.button('Update record'):
-<<<<<<< Updated upstream
                 update_record(new_amount, new_note, funding_line_id, fiscal_year, step)
                 st.success('Updated ::{} ::to FUNDINGAMOUNTS table {}'.format(amount, new_amount))
-=======
-                update_record(new_amount, new_note, key)  # funding_line_id, fiscal_year, step)
-                st.success('Updated: {}, {} to FUNDINGAMOUNTS table'.format(new_amount, new_note))
->>>>>>> Stashed changes
 
             with st.expander('View updated record'):
                 result = get_record(key)  # view_data()
