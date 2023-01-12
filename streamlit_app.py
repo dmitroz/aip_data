@@ -59,6 +59,8 @@ def main():
                     amount = row.AMOUNT
                     notes = row.NOTES
                     insert_record(key, funding_line_id, fiscal_year, step, amount, notes)
+                    st.success('Added: {}, {}, {}, {}, {}, {} to FUNDINGAMOUNTS table'.format(
+                        key, funding_line_id, fiscal_year, step,  amount, notes))
 
                 # insert_record(key, funding_line_id, fiscal_year, step, amount, notes)
                 # st.success('Added: {}, {}, {}, {}, {}, {} to FUNDINGAMOUNTS table'.format(
