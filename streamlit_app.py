@@ -139,7 +139,7 @@ def main():
                 # new_step = st.selectbox(step, ["Enacted", "Actual", "Request",
                 #                                "Request Plus Mandatory", "House", "Senate", "Request w Add",
                 #                                "House Stimulus"])
-                new_amount = st.number_input(amount)
+                new_amount = st.number_input("Input amount", amount)
 
             if st.button('Update record'):
                 update_record(new_amount, new_note, funding_line_id, fiscal_year, step)
