@@ -11,4 +11,4 @@ cookie:
   expiry_hours: 0
   expiry_minutes: 120
 file_upload:
-  delimiter: ','
+  delimiter: ';'
