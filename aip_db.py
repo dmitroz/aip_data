@@ -554,8 +554,8 @@ class Snowflake:
 
         self.cx.execute("""
                             DELETE FROM FUNDING_AMOUNT_UPLOAD AS FA
-                            USING FUNDING_LINE AS FL ON FA.FUNDING_LINE_ID = FL.ID                                  
-                            WHERE {}                         
+                            USING FUNDING_LINE AS FL WHERE FA.FUNDING_LINE_ID = FL.ID                                  
+                            AND {}                         
                         """.format(query_org + ' AND ' +
                                    query_name + ' AND ' +
                                    query_year + ' AND ' +
