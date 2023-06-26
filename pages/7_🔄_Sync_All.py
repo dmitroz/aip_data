@@ -153,7 +153,7 @@ if sf.connected():
                 query_step + ' AND ' +
                 query_user)
 
-        # sf.delete_funding_amount_upload(df_org=select_org, df_name=select_name, df_year=select_year,
-        #                                 df_step=select_step, df_user=select_user)
+        sf.delete_funding_amount_upload(df_org=select_org, df_name=select_name, df_year=select_year,
+                                        df_step=select_step, df_user=select_user)
 
         st.success('Purge was successfully completed.')
