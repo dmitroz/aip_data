@@ -148,20 +148,14 @@ if sf.connected():
             query_user = '(5 = 5)'
 
         st.info("""
-                            DELETE FROM FUNDING_AMOUNT_UPLOAD A
-                            USING (SELECT * FROM FUNDING_AMOUNT_UPLOAD FA 
-                                    JOIN FUNDING_LINE FL ON FA.FUNDING_LINE_ID = FL.ID 
-                                    JOIN ORGANIZATION ORG ON FL.ORG_ID = ORG.ORG_ID 
-                                    WHERE {}) AS B
-                            WHERE A.FUNDING_LINE_ID = B.FUNDING_LINE_ID
-                            AND A.FISCAL_YEAR = B.FISCAL_YEAR
-                            AND A.STEP = B.STEP
-                            AND A.AMOUNT_TYPE = B.AMOUNT_TYPE;                         
-                        """.format(query_org + ' AND ' +
-                                   query_name + ' AND ' +
-                                   query_year + ' AND ' +
-                                   query_step + ' AND ' +
-                                   query_user))
+                    DELETE FROM FUNDING_AMOUNT_UPLOAD AS FA
+                    USING FUNDING_LINE AS FL ON FA.FUNDING_LINE_ID = FL.ID                                  
+                    WHERE {}                         
+                """.format(query_org + ' AND ' +
+                           query_name + ' AND ' +
+                           query_year + ' AND ' +
+                           query_step + ' AND ' +
+                           query_user))
 
         sf.delete_funding_amount_upload(df_org=select_org, df_name=select_name, df_year=select_year,
                                         df_step=select_step, df_user=select_user)
