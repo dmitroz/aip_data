@@ -22,13 +22,18 @@ if sf.connected():
         sf_org_ids = sf.view_all_org_ids()
         if sf_org_ids is not None:
             select_org = st.multiselect("Select ORG_ID:", [str(i[0]) for i in sf.view_all_org_ids()])
+            select_name = st.multiselect("Select NAME:", set(df_amount['NAME']))
         else:
             select_org = st.multiselect("Select ORG_ID:", [])
-        select_name = st.multiselect("Select NAME:", set(df_amount['NAME']))
+            select_name = st.multiselect("Select NAME:", [])
         select_isblank = st.checkbox("Download with blank values?")
     with col2:
-        select_year = st.multiselect("Select FISCAL_YEAR:", set(df_amount['FISCAL_YEAR']))
-        select_step = st.multiselect("Select STEP:", set(df_amount['STEP']))
+        if df_amount is not None:
+            select_year = st.multiselect("Select FISCAL_YEAR:", set(df_amount['FISCAL_YEAR']))
+            select_step = st.multiselect("Select STEP:", set(df_amount['STEP']))
+        else:
+            select_year = st.multiselect("Select FISCAL_YEAR:", [])
+            select_step = st.multiselect("Select STEP:", [])
 
     df_selected = sf.view_data_funding_amount(isblank=select_isblank,
                                               df_org=select_org,
