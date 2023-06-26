@@ -36,6 +36,7 @@ if sf.connected():
 
             # csv_df['FUNDING_TYPE'] = csv_df['FUNDING_TYPE'].fillna('')
             # csv_df['VERSION'] = csv_df['VERSION'].fillna(0)
+            csv_df['STEP'] = csv_df['STEP'].fillna('')
             csv_df['AMOUNT_TYPE'] = csv_df['AMOUNT_TYPE'].fillna('')
             csv_df['SOURCE_URL'] = csv_df['SOURCE_URL'].fillna('')
             csv_df['FA_NOTE'] = csv_df['FA_NOTE'].fillna('')
