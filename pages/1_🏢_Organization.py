@@ -11,9 +11,12 @@ if sf.connected():
     pd.DataFrame(sf_org, columns=['ORG', 'PARENT', 'ORG_ID', 'LEVEL', 'NAME'])
 
     sf_org_ids = sf.view_all_org_ids()
-    select_org = st.multiselect("Select ORG_ID:", [str(i[0]) for i in sf_org_ids])
-    sf_select_org = sf.view_child_org_ids(select_org)
+    if sf_org_ids is not None:
+        select_org = st.multiselect("Select ORG_ID:", [str(i[0]) for i in sf_org_ids])
+    else:
+        select_org = st.multiselect("Select ORG_ID:", [])
 
+    sf_select_org = sf.view_child_org_ids(select_org)
     df_select_org = pd.DataFrame(sf_select_org,
                                  columns=['ORG', 'PARENT', 'ORG_ID', 'LEVEL', 'NAME'])
     st.dataframe(df_select_org,
@@ -48,4 +51,3 @@ if sf.connected():
         else:
             sf.insert_organization(org.upper(), parent, org_id, int(level), name)
             st.success("New record added to ORGANIZATION: ORG_ID = '{}'".format(org_id))
-            st.experimental_rerun()

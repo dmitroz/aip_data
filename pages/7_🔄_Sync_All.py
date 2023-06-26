@@ -1,11 +1,12 @@
 import streamlit as st
 import pandas as pd
 import aip
+
 aip.build(page_title='Review and push into Snowflake', page_icon='🔄️')
 sf = aip.get_snowflake()
 
 if sf.connected():
-    st.info('How to synchronize? \n'
+    st.info('🪄 How to synchronize? \n'
             '- View bulk uploaded data \n'
             '- Verify user name \n'
             '- Go back to Bulk upload and alter a line in '
@@ -14,11 +15,9 @@ if sf.connected():
             '- Submit \n'
             '- Verify data has either been added or updated existing data in Funding Amounts table')
 
-    # df_upload = sf.view_data_funding_amount_upload()
     df_upload = pd.DataFrame(sf.view_data_funding_amount_upload(extended=True),
                              columns=['USER', 'FUNDING_LINE_ID', 'ORG_ID', 'NAME', 'FISCAL_YEAR', 'STEP',
-                                      'AMOUNT',
-                                      'AMOUNT_TYPE', 'SOURCE_URL', 'NOTE'])
+                                      'AMOUNT', 'AMOUNT_TYPE', 'SOURCE_URL', 'NOTE'])
 
     col1, col2 = st.columns(2)
     with col1:
@@ -37,10 +36,11 @@ if sf.connected():
                                                                   df_step=select_step,
                                                                   df_user=select_user),
                                columns=['USER', 'FUNDING_LINE_ID', 'ORG_ID', 'NAME', 'FISCAL_YEAR', 'STEP',
-                                        'AMOUNT',
-                                        'AMOUNT_TYPE', 'SOURCE_URL', 'NOTE'])
+                                        'AMOUNT', 'AMOUNT_TYPE', 'SOURCE_URL', 'NOTE'])
     st.dataframe(df_selected,
                  use_container_width=True)
+
+    userid = sf.current_user()
 
     if st.button('Submit'):
 
@@ -56,44 +56,104 @@ if sf.connected():
             source_url = row.SOURCE_URL
             note = row.NOTE
 
-            df_amount = pd.DataFrame(sf.exist_funding_amount(funding_line_id, int(fiscal_year), step,
+            df_amount = pd.DataFrame(sf.exist_funding_amount(int(funding_line_id), int(fiscal_year), step,
                                                              amount_type))
 
-            userid = sf.current_user()
-
             if not df_amount.empty:
-                sf.update_funding_amount(funding_line_id, int(fiscal_year), step,
+                sf.update_funding_amount(int(funding_line_id), int(fiscal_year), step,
                                          amount_type,
-                                         int(fiscal_year), step, amount,
+                                         int(fiscal_year), step, float(amount),
                                          amount_type, source_url, note)
-                st.warning("Existing FUNDING AMOUNT record was updated: "
-                           "FUNDING_LINE_ID = '{}', "
-                           "FISCAL_YEAR = {}, STEP = '{}', "
-                           "AMOUNT_TYPE = '{}' ".format(
-                    funding_line_id, int(fiscal_year), step, amount_type))
+                st.warning("""
+                                Existing FUNDING AMOUNT record was updated:
+                                FUNDING_LINE_ID = {}, 
+                                FISCAL_YEAR = {}, STEP = '{}', 
+                                AMOUNT_TYPE = '{}' 
+                            """.format(int(funding_line_id), int(fiscal_year), step, amount_type))
             else:
-                sf.insert_funding_amount(funding_line_id, int(fiscal_year), step, amount,
-                                         amount_type,
-                                         source_url, note)
-                st.info("New record was added to FUNDING AMOUNT: "
-                        "FUNDING_LINE_ID = '{}', "
-                        "FISCAL_YEAR = {}, "
-                        "STEP = '{}', "
-                        "AMOUNT_TYPE = '{}'".format(
-                    funding_line_id, fiscal_year, step, amount_type))
+                sf.insert_funding_amount(int(funding_line_id), int(fiscal_year), step, float(amount),
+                                         amount_type, source_url, note)
+                st.info("""
+                            New record was added to FUNDING AMOUNT: 
+                            FUNDING_LINE_ID = {}, 
+                            FISCAL_YEAR = {}, 
+                            STEP = '{}', 
+                            AMOUNT_TYPE = '{}'
+                        """.format(int(funding_line_id), int(fiscal_year), step, amount_type))
 
-            if select_clear:
-                sf.delete_funding_amount_upload(userid, funding_line_id, fiscal_year, step, amount_type)
+        if select_clear:
+            sf.delete_funding_amount_upload(df_org=select_org, df_name=select_name, df_year=select_year,
+                                            df_step=select_step, df_user=select_user)
 
         st.success('Upload was successfully completed.')
-        st.experimental_rerun()
 
     if st.button('Clear'):
         if select_org == [] and select_name == [] and select_year == [] and select_step == []:
             st.warning('All items from Preview table will be purged.. please wait')
 
-        for row in df_selected.itertuples():
-            sf.delete_funding_amount_upload(userid, row.FUNDING_LINE_ID, row.FISCAL_YEAR, row.STEP, row.AMOUNT_TYPE)
+        query_org = ''
+        query_name = ''
+        query_year = ''
+        query_step = ''
+        query_user = ''
+
+        if select_org:
+            for index in select_org:
+                if query_org == '':
+                    query_org = "FL.ORG_ID = '{}' ".format(index)
+                else:
+                    query_org += "OR FL.ORG_ID = '{}' ".format(index)
+            query_org = '(' + query_org + ')'
+        else:
+            query_org = '(1 = 1)'
+
+        if select_name:
+            for index in select_name:
+                if query_name == '':
+                    query_name = "FL.NAME = '{}' ".format(index)
+                else:
+                    query_name += "OR FL.NAME = '{}' ".format(index)
+            query_name = '(' + query_name + ')'
+        else:
+            query_name = '(2 = 2)'
+
+        if select_year:
+            for index in select_year:
+                if query_year == '':
+                    query_year = "FA.FISCAL_YEAR = {} ".format(index)
+                else:
+                    query_year += "OR FA.FISCAL_YEAR = {} ".format(index)
+            query_year = '(' + query_year + ')'
+        else:
+            query_year = '(3 = 3)'
+
+        if select_step:
+            for index in select_step:
+                if query_step == '':
+                    query_step = "FA.STEP = '{}' ".format(index)
+                else:
+                    query_step += "OR FA.STEP = '{}' ".format(index)
+            query_step = '(' + query_step + ')'
+        else:
+            query_step = '(4 = 4)'
+
+        if select_user:
+            for index in select_user:
+                if query_user == '':
+                    query_user = "FA.USER = '{}' ".format(index)
+                else:
+                    query_user += "OR FA.USER = '{}' ".format(index)
+            query_user = '(' + query_user + ')'
+        else:
+            query_user = '(5 = 5)'
+
+        st.info(query_org + ' AND ' +
+                query_name + ' AND ' +
+                query_year + ' AND ' +
+                query_step + ' AND ' +
+                query_user)
+
+        # sf.delete_funding_amount_upload(df_org=select_org, df_name=select_name, df_year=select_year,
+        #                                 df_step=select_step, df_user=select_user)
 
         st.success('Purge was successfully completed.')
-        st.experimental_rerun()

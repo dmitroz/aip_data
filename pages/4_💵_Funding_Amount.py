@@ -9,14 +9,17 @@ sf = aip.get_snowflake()
 if sf.connected():
 
     df_amount = pd.DataFrame(sf.view_data_funding_amount(),
-                             columns=['FUNDING_LINE_ID', 'ORG_ID', 'NAME', 'FUNDING_TYPE', 'VERSION',
-                                      'FISCAL_YEAR', 'STEP', 'AMOUNT', 'AMOUNT_TYPE', 'SOURCE_URL', 'NOTE']
+                             columns=['FUNDING_LINE_ID', 'ORG_ID', 'NAME', 'FUNDING_TYPE', 'VERSION', 'FL_NOTE',
+                                      'FISCAL_YEAR', 'STEP', 'AMOUNT', 'AMOUNT_TYPE', 'SOURCE_URL', 'FA_NOTE']
                              )
 
     col1, col2 = st.columns(2)
     with col1:
-        # df_org = st.multiselect("Select ORG_ID:", set(df['ORG_ID']))
-        select_org = st.multiselect("Select ORG_ID:", [str(i[0]) for i in sf.view_all_org_ids()])
+        sf_org_ids = sf.view_all_org_ids()
+        if sf_org_ids is not None:
+            select_org = st.multiselect("Select ORG_ID:", [str(i[0]) for i in sf.view_all_org_ids()])
+        else:
+            select_org = st.multiselect("Select ORG_ID:", [])
         select_name = st.multiselect("Select NAME:", set(df_amount['NAME']))
     with col2:
         select_year = st.multiselect("Select FISCAL_YEAR:", set(df_amount['FISCAL_YEAR']))
@@ -27,8 +30,8 @@ if sf.connected():
                                               df_year=select_year,
                                               df_step=select_step)
     df_selected = pd.DataFrame(df_selected,
-                               columns=['FUNDING_LINE_ID', 'ORG_ID', 'NAME', 'FUNDING_TYPE', 'VERSION',
-                                        'FISCAL_YEAR', 'STEP', 'AMOUNT', 'AMOUNT_TYPE', 'SOURCE_URL', 'NOTE']
+                               columns=['FUNDING_LINE_ID', 'ORG_ID', 'NAME', 'FUNDING_TYPE', 'VERSION', 'FL_NOTE',
+                                        'FISCAL_YEAR', 'STEP', 'AMOUNT', 'AMOUNT_TYPE', 'SOURCE_URL', 'FA_NOTE']
                                )
     st.dataframe(df_selected,
                  use_container_width=True)
@@ -37,9 +40,8 @@ if sf.connected():
     col1, col2 = st.columns(2)
 
     with col1:
-        # list_of_records = [i[0] for i in sf.view_all_funding_ids()]
         funding_line_id = st.selectbox('FUNDING_LINE_ID',
-                                       set(df_selected['FUNDING_LINE_ID']))  # list_of_records)
+                                       set(df_selected['FUNDING_LINE_ID']))
         fiscal_year = st.selectbox('FISCAL_YEAR',
                                    ('2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017',
                                     '2018', '2019', '2020', '2021', '2022', '2023', '2024', '2025',
@@ -58,9 +60,9 @@ if sf.connected():
 
     with col2:
         amount = st.number_input('AMOUNT')
-        amount_type = st.text_input('AMOUNT_TYPE')  # , 'Dummy amount type')
-        source_url = st.text_input('SOURCE_URL')  # , 'Dummy source url')
-        note = st.text_area('NOTE')  # , 'Dummy note')
+        amount_type = st.text_input('AMOUNT_TYPE')
+        source_url = st.text_input('SOURCE_URL')
+        note = st.text_area('NOTE')
 
     if st.button('Submit'):
         df = sf.exist_funding_amount(funding_line_id, int(fiscal_year), step, amount_type)
@@ -77,4 +79,3 @@ if sf.connected():
                        "FISCAL_YEAR = {}, "
                        "STEP = '{}', "
                        "AMOUNT_TYPE = '{}'".format(funding_line_id, fiscal_year, step, amount_type))
-            st.experimental_rerun()

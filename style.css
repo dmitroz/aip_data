@@ -3,8 +3,6 @@
     padding: 10px;
 }
 
-[data-testid="stForm"] {border: 0px}
-
 .plot-container>div {
     box-shadow: 0 0 3px #cccccc;
 }

@@ -7,7 +7,8 @@ snowflake:
   use_openssl_only: False
   role: ['ACCOUNTADMIN', 'SYSADMIN', 'FYI_BUDGET_TRACKER_DB_ADMIN_ROLE']
 cookie:
+  cookie_name: 'streamlit_cookie'
   expiry_hours: 0
-  expiry_minutes: 5
+  expiry_minutes: 120
 file_upload:
   delimiter: ','

@@ -91,6 +91,10 @@ def build(page_title, page_icon):
     with open('style.css') as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
+    # col1, col2 = st.columns((6, 1))
+    # col1.title(page_icon + " " + page_title)
+    # col2.image("assets/aip-logo-180.png", width=120)
+
     sf = get_snowflake()
     cookie_manager = get_manager()
     cookie_manager.get_all()
@@ -122,12 +126,16 @@ def build(page_title, page_icon):
 
     expire = datetime.now()
 
+    st.info('Log: expire {}'.format(value))
+
     if value is not None:
         expire = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
 
     if expire < datetime.now():
         if cookie_manager.get(cookie_name):
-            cookie_manager.delete(cookie_name)
+            # cookie_manager.delete(cookie_name)
+            clear_cookie_manager()
+
         userid = ''
         password = ''
         role = ''
@@ -147,7 +155,6 @@ def build(page_title, page_icon):
 
     if sf.not_connected():
         st.subheader('🧑‍💻 Authorization')
-        # st.title('🧑‍💻 Authorization')
 
         config = get_yaml()
 
@@ -179,9 +186,9 @@ def build(page_title, page_icon):
             else:
                 try:
                     sf.authorization(userid, password, role, select_schema, sf_database, sf_account,
-                                     sf_warehouse)  # sf_schema[2]
+                                     sf_warehouse)
                     save_cookie(userid, password, role, select_schema, sf_database, sf_account,
-                                sf_warehouse)  # sf_schema[2]
-                    # st.experimental_rerun()
+                                sf_warehouse)
+
                 except Exception as e:
                     st.error(str(e))

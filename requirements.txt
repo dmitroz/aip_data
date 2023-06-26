@@ -25,3 +25,7 @@ streamlit-on-Hover-tabs
 streamlit-cookies-manager
 streamlit~=1.16.0
 extra_streamlit_components
+
+Pillow~=9.4.0
+snowflake~=0.0.3
+pysnowflake~=0.1.3

@@ -1,4 +1,5 @@
 import snowflake.connector
+import streamlit
 import yaml
 
 
@@ -14,6 +15,7 @@ class Snowflake:
     def clear_authorization(self):
         self.connect = None
         self.cx = None
+        self.user = None
 
     def not_connected(self):
         return self.cx is None
@@ -44,16 +46,20 @@ class Snowflake:
 
     def insert_organization(self, org, parent, org_id, level, name):
         if parent == '<NA>':
-            self.cx.execute("INSERT INTO ORGANIZATION(ORG, ORG_ID, LEVEL, NAME) VALUES ('{}', '{}', {}, '{}')".format(
-                org, org_id, level, name))
+            self.cx.execute("""
+                                INSERT INTO ORGANIZATION(ORG, ORG_ID, LEVEL, NAME) VALUES ('{}', '{}', {}, '{}')
+                            """.format(org, org_id, level, name))
         else:
-            self.cx.execute(
-                "INSERT INTO ORGANIZATION(ORG, PARENT, ORG_ID, LEVEL, NAME) VALUES ('{}', '{}', '{}', {}, '{}')".format(
-                    org, parent, org_id, level, name))
+            self.cx.execute("""
+                                INSERT INTO ORGANIZATION(ORG, PARENT, ORG_ID, LEVEL, NAME) 
+                                VALUES ('{}', '{}', '{}', {}, '{}')
+                            """.format(org, parent, org_id, level, name))
         self.connect.commit()
 
     def view_all_org_ids(self):
-        self.cx.execute('SELECT DISTINCT ORG_ID FROM ORGANIZATION ORDER BY ORG_ID')
+        self.cx.execute("""
+                            SELECT DISTINCT ORG_ID FROM ORGANIZATION ORDER BY ORG_ID
+                        """)
         data = self.cx.fetchall()
         return data
 
@@ -186,30 +192,31 @@ class Snowflake:
         return data
 
     def exist_funding_line(self, org_id, name, version):
-        self.cx.execute(
-            "SELECT ORG_ID, NAME, VERSION FROM FUNDING_LINE WHERE ORG_ID = '{}' AND NAME = '{}' AND VERSION = {}".format(
-                org_id, name, version
-            ))
+        self.cx.execute("""
+                            SELECT ORG_ID, NAME, VERSION FROM FUNDING_LINE 
+                            WHERE ORG_ID = '{}' AND NAME = '{}' AND VERSION = {}
+                        """.format(org_id, name, version))
         data = self.cx.fetchall()
         return data
 
-    def insert_funding_line(self, id, org_id, name, funding_type, version, top_line, note):
-        self.cx.execute(
-            "INSERT INTO FUNDING_LINE(ID, ORG_ID, NAME, FUNDING_TYPE, VERSION, TOP_LINE, NOTE) VALUES ({}, '{}', '{}', '{}', {}, {}, '{}')".format(
-                id, org_id, name, funding_type, version, top_line, note))
+    def insert_funding_line(self, line_id, org_id, name, funding_type, version, top_line, note):
+        self.cx.execute("""
+                            INSERT INTO FUNDING_LINE(ID, ORG_ID, NAME, FUNDING_TYPE, VERSION, TOP_LINE, NOTE) 
+                            VALUES ({}, '{}', '{}', '{}', {}, {}, '{}')
+                        """.format(line_id, org_id, name, funding_type, version, top_line, note))
         self.connect.commit()
 
-    def update_funding_line(self, id, org_id, name, funding_type, version, top_line, note):
-        self.cx.execute(
-            "UPDATE FUNDING_LINE SET "
-            "ORG_ID = '{}', "
-            "NAME = '{}', "
-            "FUNDING_TYPE = '{}', "
-            "VERSION = {},"
-            "TOP_LINE = {}, "
-            "NOTE = '{}' "
-            "WHERE ID = {} ".format(
-                org_id, name, funding_type, version, top_line, note, id))
+    def update_funding_line(self, line_id, org_id, name, funding_type, version, top_line, note):
+        self.cx.execute("""
+                            UPDATE FUNDING_LINE SET 
+                            ORG_ID = '{}', 
+                            NAME = '{}', 
+                            FUNDING_TYPE = '{}', 
+                            VERSION = {}, 
+                            TOP_LINE = {}, 
+                            NOTE = '{}' 
+                            WHERE ID = {} 
+                        """.format(org_id, name, funding_type, version, top_line, note, line_id))
         self.connect.commit()
         data = self.cx.fetchall()
         return data
@@ -268,88 +275,95 @@ class Snowflake:
             query_step = '(4 = 4)'
 
         if isblank:
-            self.cx.execute('SELECT '
-                            'FA.FUNDING_LINE_ID, '
-                            'FL.ORG_ID ,'
-                            'FL.NAME, '
-                            'FL.FUNDING_TYPE, '
-                            'FL.VERSION, '
-                            '\'\' AS FISCAL_YEAR, '
-                            '\'\' AS STEP, '
-                            '\'\' AS AMOUNT, '
-                            '\'\' AS AMOUNT_TYPE, '
-                            '\'\' AS SOURCE_URL, '
-                            '\'\' AS NOTE '
-                            'FROM FUNDING_AMOUNT AS FA '
-                            'JOIN FUNDING_LINE AS FL ON FA.FUNDING_LINE_ID = FL.ID '
-                            'JOIN ORGANIZATION AS ORG ON FL.ORG_ID = ORG.ORG_ID '
-                            'WHERE {} '
-                            'GROUP BY FA.FUNDING_LINE_ID, FL.ORG_ID, FL.NAME, FL.FUNDING_TYPE, FL.VERSION '
-                            'ORDER BY FL.ORG_ID ASC '.format(
-                             query_org + ' AND ' + query_name + ' AND ' + query_year + ' AND ' + query_step))
+            self.cx.execute("""
+                            SELECT 
+                            FA.FUNDING_LINE_ID, 
+                            FL.ORG_ID,
+                            FL.NAME, 
+                            FL.FUNDING_TYPE, 
+                            FL.VERSION,                            
+                            FL.NOTE AS FL_NOTE, 
+                            \'\' AS FISCAL_YEAR, 
+                            \'\' AS STEP, 
+                            \'\' AS AMOUNT, 
+                            \'\' AS AMOUNT_TYPE, 
+                            \'\' AS SOURCE_URL, 
+                            \'\' AS FA_NOTE 
+                            FROM FUNDING_AMOUNT AS FA 
+                            JOIN FUNDING_LINE AS FL ON FA.FUNDING_LINE_ID = FL.ID 
+                            JOIN ORGANIZATION AS ORG ON FL.ORG_ID = ORG.ORG_ID 
+                            WHERE {} 
+                            GROUP BY FA.FUNDING_LINE_ID, FL.ORG_ID, FL.NAME, FL.FUNDING_TYPE, FL.VERSION, FL.NOTE 
+                            ORDER BY FL.ORG_ID ASC 
+                            """.format(query_org + ' AND ' + query_name + ' AND ' + query_year + ' AND ' + query_step))
         else:
-            self.cx.execute('SELECT '
-                            'FA.FUNDING_LINE_ID, '
-                            'FL.ORG_ID ,'
-                            'FL.NAME, '
-                            'FL.FUNDING_TYPE, '
-                            'FL.VERSION, '
-                            'FA.FISCAL_YEAR, '
-                            'FA.STEP, '
-                            'FA.AMOUNT, '
-                            'FA.AMOUNT_TYPE, '
-                            'FA.SOURCE_URL, '
-                            'FA.NOTE '
-                            'FROM FUNDING_AMOUNT AS FA '
-                            'JOIN FUNDING_LINE AS FL ON FA.FUNDING_LINE_ID = FL.ID '
-                            'JOIN ORGANIZATION AS ORG ON FL.ORG_ID = ORG.ORG_ID '
-                            'WHERE {} '
-                            'ORDER BY FL.ORG_ID ASC '.format(
-                             query_org + ' AND ' + query_name + ' AND ' + query_year + ' AND ' + query_step))
+            self.cx.execute("""
+                            SELECT 
+                            FA.FUNDING_LINE_ID, 
+                            FL.ORG_ID,
+                            FL.NAME, 
+                            FL.FUNDING_TYPE,
+                            FL.VERSION,                             
+                            FL.NOTE AS FL_NOTE, 
+                            FA.FISCAL_YEAR, 
+                            FA.STEP, 
+                            FA.AMOUNT, 
+                            FA.AMOUNT_TYPE, 
+                            FA.SOURCE_URL, 
+                            FA.NOTE AS FA_NOTE
+                            FROM FUNDING_AMOUNT AS FA 
+                            JOIN FUNDING_LINE AS FL ON FA.FUNDING_LINE_ID = FL.ID 
+                            JOIN ORGANIZATION AS ORG ON FL.ORG_ID = ORG.ORG_ID 
+                            WHERE {} 
+                            ORDER BY FL.ORG_ID ASC 
+                            """.format(query_org + ' AND ' + query_name + ' AND ' + query_year + ' AND ' + query_step))
 
         data = self.cx.fetchall()
         return data
 
     def exist_funding_amount(self, funding_line_id, fiscal_year, step, amount_type):
-        self.cx.execute("SELECT * FROM FUNDING_AMOUNT "
-                        "WHERE FUNDING_LINE_ID = '{}' "
-                        "AND FISCAL_YEAR = {} "
-                        "AND STEP = '{}' "
-                        "AND AMOUNT_TYPE = '{}'".format(funding_line_id, fiscal_year, step, amount_type))
+        self.cx.execute("""
+                            SELECT * FROM FUNDING_AMOUNT 
+                            WHERE FUNDING_LINE_ID = '{}' 
+                            AND FISCAL_YEAR = {} 
+                            AND STEP = '{}' 
+                            AND AMOUNT_TYPE = '{}'
+                        """.format(funding_line_id, fiscal_year, step, amount_type))
         data = self.cx.fetchall()
         return data
 
     def insert_funding_amount(self, funding_line_id, fiscal_year, step, amount, amount_type, source_url, note):
-        self.cx.execute(
-            "INSERT INTO FUNDING_AMOUNT(FUNDING_LINE_ID, FISCAL_YEAR, STEP, AMOUNT, AMOUNT_TYPE, SOURCE_URL, NOTE) "
-            "VALUES ({}, {}, '{}', {}, '{}', '{}', '{}')".format(
-                funding_line_id, fiscal_year, step, amount, amount_type, source_url, note))
+        self.cx.execute("""
+                            INSERT INTO FUNDING_AMOUNT(FUNDING_LINE_ID, FISCAL_YEAR, STEP, AMOUNT, AMOUNT_TYPE, SOURCE_URL, 
+                            NOTE)
+                            VALUES ({}, {}, '{}', {}, '{}', '{}', '{}')
+                        """.format(funding_line_id, fiscal_year, step, amount, amount_type, source_url, note))
         self.connect.commit()
 
     def update_funding_amount(self, funding_line_id, fiscal_year, step, amount_type, new_fiscal_year, new_step,
-                              new_amount,
-                              new_amount_type, new_source_url, new_note):
-        self.cx.execute(
-            "UPDATE FUNDING_AMOUNT SET "
-            "FISCAL_YEAR = {}, "
-            "STEP = '{}', "
-            "AMOUNT = {}, "
-            "AMOUNT_TYPE = '{}',"
-            "SOURCE_URL = '{}', "
-            "NOTE = '{}' "
-            "WHERE FUNDING_LINE_ID = '{}' "
-            "AND FISCAL_YEAR = {} "
-            "AND STEP = '{}' "
-            "AND AMOUNT_TYPE = '{}'".format(
-                new_fiscal_year, new_step, new_amount, new_amount_type, new_source_url, new_note,
-                funding_line_id, fiscal_year, step, amount_type))
+                              new_amount, new_amount_type, new_source_url, new_note):
+        self.cx.execute("""
+                            UPDATE FUNDING_AMOUNT SET 
+                            FISCAL_YEAR = {}, 
+                            STEP = '{}', 
+                            AMOUNT = {}, 
+                            AMOUNT_TYPE = '{}', 
+                            SOURCE_URL = '{}', 
+                            NOTE = '{}' 
+                            WHERE FUNDING_LINE_ID = '{}' 
+                            AND FISCAL_YEAR = {} 
+                            AND STEP = '{}' 
+                            AND AMOUNT_TYPE = '{}'
+                        """.format(new_fiscal_year, new_step, new_amount, new_amount_type, new_source_url, new_note,
+                                   funding_line_id, fiscal_year, step, amount_type))
         self.connect.commit()
         data = self.cx.fetchall()
         return data
 
     def get_funding_amount(self, funding_line_id):
-        self.cx.execute(
-            'SELECT * FROM FUNDING_AMOUNT WHERE FUNDING_LINE_ID ={}'.format(funding_line_id))
+        self.cx.execute("""
+                            SELECT * FROM FUNDING_AMOUNT WHERE FUNDING_LINE_ID ={}
+                        """.format(funding_line_id))
         data = self.cx.fetchall()
         return data
 
@@ -425,89 +439,164 @@ class Snowflake:
             query_user = '(5 = 5)'
 
         if extended:
-            self.cx.execute('SELECT '
-                            'FA.USER, '
-                            'FA.FUNDING_LINE_ID, '
-                            'FL.ORG_ID ,'
-                            'FL.NAME, '
-                            'FA.FISCAL_YEAR, '
-                            'FA.STEP, '
-                            'FA.AMOUNT, '
-                            'FA.AMOUNT_TYPE, '
-                            'FA.SOURCE_URL, '
-                            'FA.NOTE '
-                            'FROM FUNDING_AMOUNT_UPLOAD AS FA '
-                            'JOIN FUNDING_LINE AS FL ON FA.FUNDING_LINE_ID = FL.ID '
-                            'JOIN ORGANIZATION AS ORG ON FL.ORG_ID = ORG.ORG_ID '
-                            'WHERE {}'.format(
-                             query_org + ' AND ' + query_name + ' AND ' + query_year + ' AND ' + query_step + ' AND '
-                             + query_user))
+            self.cx.execute("""
+                                SELECT 
+                                FA.USER, 
+                                FA.FUNDING_LINE_ID, 
+                                FL.ORG_ID,
+                                FL.NAME, 
+                                FA.FISCAL_YEAR, 
+                                FA.STEP, 
+                                FA.AMOUNT, 
+                                FA.AMOUNT_TYPE, 
+                                FA.SOURCE_URL, 
+                                FA.NOTE 
+                                FROM FUNDING_AMOUNT_UPLOAD AS FA 
+                                JOIN FUNDING_LINE AS FL ON FA.FUNDING_LINE_ID = FL.ID 
+                                JOIN ORGANIZATION AS ORG ON FL.ORG_ID = ORG.ORG_ID 
+                                WHERE {}
+                            """.format(query_org + ' AND ' + query_name + ' AND ' + query_year + ' AND ' + query_step +
+                                       ' AND ' + query_user))
         else:
-            self.cx.execute('SELECT '
-                            'FA.FUNDING_LINE_ID, '
-                            'FL.ORG_ID ,'
-                            'FL.NAME, '
-                            'FA.FISCAL_YEAR, '
-                            'FA.STEP, '
-                            'FA.AMOUNT, '
-                            'FA.AMOUNT_TYPE, '
-                            'FA.SOURCE_URL, '
-                            'FA.NOTE '
-                            'FROM FUNDING_AMOUNT_UPLOAD AS FA '
-                            'JOIN FUNDING_LINE AS FL ON FA.FUNDING_LINE_ID = FL.ID '
-                            'JOIN ORGANIZATION AS ORG ON FL.ORG_ID = ORG.ORG_ID '
-                            'WHERE {}'.format(
-                             query_org + ' AND ' + query_name + ' AND ' + query_year + ' AND ' + query_step + ' AND '
-                             + query_user))
+            self.cx.execute("""
+                                SELECT 
+                                FA.FUNDING_LINE_ID, 
+                                FL.ORG_ID, 
+                                FL.NAME, 
+                                FA.FISCAL_YEAR, 
+                                FA.STEP, 
+                                FA.AMOUNT, 
+                                FA.AMOUNT_TYPE, 
+                                FA.SOURCE_URL, 
+                                FA.NOTE 
+                                FROM FUNDING_AMOUNT_UPLOAD AS FA 
+                                JOIN FUNDING_LINE AS FL ON FA.FUNDING_LINE_ID = FL.ID 
+                                JOIN ORGANIZATION AS ORG ON FL.ORG_ID = ORG.ORG_ID 
+                                WHERE {}
+                            """.format(query_org + ' AND ' +
+                                       query_name + ' AND ' +
+                                       query_year + ' AND ' +
+                                       query_step + ' AND ' +
+                                       query_user))
 
         data = self.cx.fetchall()
         return data
 
     def exist_funding_amount_upload(self, userid, funding_line_id, fiscal_year, step, amount_type):
-        self.cx.execute("SELECT * FROM FUNDING_AMOUNT_UPLOAD "
-                        "WHERE USER = '{}' "
-                        "AND FUNDING_LINE_ID = '{}' "
-                        "AND FISCAL_YEAR = {} "
-                        "AND STEP = '{}' "
-                        "AND AMOUNT_TYPE = '{}'".format(userid, funding_line_id, fiscal_year, step, amount_type))
+        self.cx.execute("""
+                            SELECT * FROM FUNDING_AMOUNT_UPLOAD 
+                            WHERE USER = '{}' 
+                            AND FUNDING_LINE_ID = {} 
+                            AND FISCAL_YEAR = {}
+                            AND STEP = '{}'
+                            AND AMOUNT_TYPE = '{}'
+                        """.format(userid, funding_line_id, fiscal_year, step, amount_type))
         data = self.cx.fetchall()
         return data
 
-    def delete_funding_amount_upload(self, userid, funding_line_id, fiscal_year, step, amount_type):
-        self.cx.execute("DELETE FROM FUNDING_AMOUNT_UPLOAD "
-                        "WHERE USER = '{}' "
-                        "AND FUNDING_LINE_ID = '{}' "
-                        "AND FISCAL_YEAR = {} "
-                        "AND STEP = '{}' "
-                        "AND AMOUNT_TYPE = '{}'".format(userid, funding_line_id, fiscal_year, step, amount_type))
+    def delete_funding_amount_upload(self, df_org=None, df_name=None, df_year=None, df_step=None,
+                                     df_user=None):
+        query_org = ''
+        query_name = ''
+        query_year = ''
+        query_step = ''
+        query_user = ''
+
+        if df_org:
+            for index in df_org:
+                if query_org == '':
+                    query_org = "FL.ORG_ID = '{}' ".format(index)
+                else:
+                    query_org += "OR FL.ORG_ID = '{}' ".format(index)
+            query_org = '(' + query_org + ')'
+        else:
+            query_org = '(1 = 1)'
+
+        if df_name:
+            for index in df_name:
+                if query_name == '':
+                    query_name = "FL.NAME = '{}' ".format(index)
+                else:
+                    query_name += "OR FL.NAME = '{}' ".format(index)
+            query_name = '(' + query_name + ')'
+        else:
+            query_name = '(2 = 2)'
+
+        if df_year:
+            for index in df_year:
+                if query_year == '':
+                    query_year = "FA.FISCAL_YEAR = {} ".format(index)
+                else:
+                    query_year += "OR FA.FISCAL_YEAR = {} ".format(index)
+            query_year = '(' + query_year + ')'
+        else:
+            query_year = '(3 = 3)'
+
+        if df_step:
+            for index in df_step:
+                if query_step == '':
+                    query_step = "FA.STEP = '{}' ".format(index)
+                else:
+                    query_step += "OR FA.STEP = '{}' ".format(index)
+            query_step = '(' + query_step + ')'
+        else:
+            query_step = '(4 = 4)'
+
+        if df_user:
+            for index in df_user:
+                if query_user == '':
+                    query_user = "FA.USER = '{}' ".format(index)
+                else:
+                    query_user += "OR FA.USER = '{}' ".format(index)
+            query_user = '(' + query_user + ')'
+        else:
+            query_user = '(5 = 5)'
+
+        self.cx.execute("""
+                            DELETE FROM FUNDING_AMOUNT_UPLOAD A
+                            USING (SELECT * FROM FUNDING_AMOUNT_UPLOAD FA 
+                                    JOIN FUNDING_LINE FL ON FA.FUNDING_LINE_ID = FL.ID 
+                                    JOIN ORGANIZATION ORG ON FL.ORG_ID = ORG.ORG_ID 
+                                    WHERE {}) AS B
+                            WHERE A.FUNDING_LINE_ID = B.FUNDING_LINE_ID
+                            AND A.FISCAL_YEAR = B.FISCAL_YEAR
+                            AND A.STEP = B.STEP
+                            AND A.AMOUNT_TYPE = B.AMOUNT_TYPE;                         
+                        """.format(query_org + ' AND ' +
+                                   query_name + ' AND ' +
+                                   query_year + ' AND ' +
+                                   query_step + ' AND ' +
+                                   query_user))
         self.connect.commit()
 
     def insert_funding_amount_upload(self, userid, funding_line_id,
                                      fiscal_year, step, amount, amount_type, source_url, note):
         self.cx.execute(
-            "INSERT INTO FUNDING_AMOUNT_UPLOAD "
-            "(USER, FUNDING_LINE_ID, FISCAL_YEAR, STEP, AMOUNT, AMOUNT_TYPE, SOURCE_URL, NOTE) "
-            "VALUES ('{}', '{}', {}, '{}', {}, '{}', '{}', '{}')".format(
-                userid, funding_line_id, fiscal_year, step, amount, amount_type, source_url, note))
+            """
+                INSERT INTO FUNDING_AMOUNT_UPLOAD 
+                (USER, FUNDING_LINE_ID, FISCAL_YEAR, STEP, AMOUNT, AMOUNT_TYPE, SOURCE_URL, NOTE) 
+                VALUES ('{}', {}, {}, '{}', {}, '{}', '{}', '{}')
+            """.format(userid, funding_line_id, fiscal_year, step, amount, amount_type, source_url, note))
         self.connect.commit()
 
-    def update_funding_amount_upload(self, userid, funding_line_id, fiscal_year, step, amount_type, new_fiscal_year,
-                                     new_step, new_amount, new_amount_type, new_source_url, new_note):
+    def update_funding_amount_upload(self, userid, funding_line_id, fiscal_year, step, amount_type,
+                                     new_fiscal_year, new_step, new_amount, new_amount_type, new_source_url, new_note):
         self.cx.execute(
-            "UPDATE FUNDING_AMOUNT_UPLOAD SET "
-            "FISCAL_YEAR = {}, "
-            "STEP = '{}', "
-            "AMOUNT = {}, "
-            "AMOUNT_TYPE = '{}',"
-            "SOURCE_URL = '{}', "
-            "NOTE = '{}' "
-            "WHERE USER = '{}'"
-            "AND FUNDING_LINE_ID = '{}' "
-            "AND FISCAL_YEAR = {} "
-            "AND STEP = '{}' "
-            "AND AMOUNT_TYPE = '{}'".format(
-                new_fiscal_year, new_step, new_amount, new_amount_type, new_source_url, new_note,
-                userid, funding_line_id, fiscal_year, step, amount_type))
+            """
+                UPDATE FUNDING_AMOUNT_UPLOAD SET 
+                FISCAL_YEAR = {}, 
+                STEP = '{}', 
+                AMOUNT = {}, 
+                AMOUNT_TYPE = '{}',
+                SOURCE_URL = '{}',
+                NOTE = '{}' 
+                WHERE USER = '{}' 
+                AND FUNDING_LINE_ID = {} 
+                AND FISCAL_YEAR = {} 
+                AND STEP = '{}' 
+                AND AMOUNT_TYPE = '{}'
+            """.format(new_fiscal_year, new_step, new_amount, new_amount_type, new_source_url, new_note,
+                       userid, funding_line_id, fiscal_year, step, amount_type))
 
         self.connect.commit()
         data = self.cx.fetchall()

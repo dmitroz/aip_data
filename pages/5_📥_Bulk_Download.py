@@ -5,25 +5,25 @@ import aip
 aip.build(page_title='Bulk download', page_icon='📥')
 sf = aip.get_snowflake()
 if sf.connected():
-    st.info('How to download? \n'
+    st.info('🪄 How to download? \n'
             '- Filter items to download \n'
-            '- Choose empty field option if you wnat to download with blank values \n'
+            '- Choose empty field option if you want to download with blank values \n'
             '- Verify that a csv file is downloaded to your computer '
             'with expected format and columns populated ')
 
     df_amount = pd.DataFrame(sf.view_data_funding_amount(isblank=False),
-                             columns=['FUNDING_LINE_ID', 'ORG_ID', 'NAME', 'FUNDING_TYPE', 'VERSION',
-                                      'FISCAL_YEAR', 'STEP', 'AMOUNT', 'AMOUNT_TYPE', 'SOURCE_URL', 'NOTE']
+                             columns=['FUNDING_LINE_ID', 'ORG_ID', 'NAME', 'FUNDING_TYPE', 'VERSION', 'FL_NOTE',
+                                      'FISCAL_YEAR', 'STEP', 'AMOUNT', 'AMOUNT_TYPE', 'SOURCE_URL', 'FA_NOTE']
                              )
-
-    # df_org = sf.view_data_organization()
-    # df_org = pd.DataFrame(sf.view_data_organization(), columns=['ORG_ID', 'PARENT', ])
 
     col1, col2 = st.columns(2)
 
     with col1:
-        # df_org = st.multiselect("Select ORG_ID:", df_org['ORG_ID'])  # set(df['ORG_ID']))
-        select_org = st.multiselect("Select ORG_ID:", [str(i[0]) for i in sf.view_all_org_ids()])
+        sf_org_ids = sf.view_all_org_ids()
+        if sf_org_ids is not None:
+            select_org = st.multiselect("Select ORG_ID:", [str(i[0]) for i in sf.view_all_org_ids()])
+        else:
+            select_org = st.multiselect("Select ORG_ID:", [])
         select_name = st.multiselect("Select NAME:", set(df_amount['NAME']))
         select_isblank = st.checkbox("Download with blank values?")
     with col2:
@@ -36,8 +36,8 @@ if sf.connected():
                                               df_year=select_year,
                                               df_step=select_step)
     df_selected = pd.DataFrame(df_selected,
-                               columns=['FUNDING_LINE_ID', 'ORG_ID', 'NAME', 'FUNDING_TYPE', 'VERSION',
-                                        'FISCAL_YEAR', 'STEP', 'AMOUNT', 'AMOUNT_TYPE', 'SOURCE_URL', 'NOTE']
+                               columns=['FUNDING_LINE_ID', 'ORG_ID', 'NAME', 'FUNDING_TYPE', 'VERSION', 'FL_NOTE',
+                                        'FISCAL_YEAR', 'STEP', 'AMOUNT', 'AMOUNT_TYPE', 'SOURCE_URL', 'FA_NOTE']
                                )
     st.dataframe(df_selected,
                  use_container_width=True)
@@ -51,8 +51,8 @@ if sf.connected():
                                                               df_name=select_name,
                                                               df_year=select_year,
                                                               df_step=select_step),
-                                  columns=['FUNDING_LINE_ID', 'ORG_ID', 'NAME', 'FUNDING_TYPE', 'VERSION',
-                                           'FISCAL_YEAR', 'STEP', 'AMOUNT', 'AMOUNT_TYPE', 'SOURCE_URL', 'NOTE']
+                                  columns=['FUNDING_LINE_ID', 'ORG_ID', 'NAME', 'FUNDING_TYPE', 'VERSION', 'FL_NOTE',
+                                           'FISCAL_YEAR', 'STEP', 'AMOUNT', 'AMOUNT_TYPE', 'SOURCE_URL', 'FA_NOTE']
                                   ))
 
     if st.download_button(
